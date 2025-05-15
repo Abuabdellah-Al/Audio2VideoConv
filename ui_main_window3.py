@@ -13,15 +13,46 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(628, 868)
-
-        MainWindow.setWindowTitle("Audio2Video Converter")
+        MainWindow.resize(628, 900)  # Increased height to accommodate new header
 
         # Central Widget with Layout
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.main_layout = QVBoxLayout(self.centralwidget)
         self.main_layout.setContentsMargins(10, 10, 10, 10)
+        self.main_layout.setSpacing(15)  # Increased spacing between widgets
+
+        # ========== NEW HEADER SECTION ==========
+        self.header_frame = QFrame()
+        self.header_frame.setObjectName(u"header_frame")
+        self.header_layout = QVBoxLayout(self.header_frame)
+        self.header_layout.setContentsMargins(0, 0, 0, 0)
+        self.header_layout.setSpacing(5)
+
+        # Main title "Audio2Video Converter"
+        self.title_label = QLabel("Audio2Video Converter")
+        self.title_label.setObjectName(u"title_label")
+        title_font = QFont()
+        title_font.setPointSize(24)
+        title_font.setBold(True)
+        self.title_label.setFont(title_font)
+        self.title_label.setStyleSheet("color: dodgerblue;")
+        self.title_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        # Subtitle "Powered by DeepSeek℗"
+        self.subtitle_label = QLabel("Powered by DeepSeek℗")
+        self.subtitle_label.setObjectName(u"subtitle_label")
+        subtitle_font = QFont()
+        subtitle_font.setPointSize(10)
+        subtitle_font.setItalic(True)
+        self.subtitle_label.setFont(subtitle_font)
+        self.subtitle_label.setStyleSheet("color: gray;")
+        self.subtitle_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+
+        # Add to header layout
+        self.header_layout.addWidget(self.title_label)
+        self.header_layout.addWidget(self.subtitle_label)
+        self.main_layout.addWidget(self.header_frame)
 
         # Image Selection Frame
         self.image_frame = QFrame()
@@ -57,7 +88,7 @@ class Ui_MainWindow(object):
         self.preview_layout.setContentsMargins(0, 0, 0, 0)
 
         # Modified imagePreview setup
-        self.imagePreview = QLabel(self.preview_frame)
+        self.imagePreview = QLabel("Drop image here",self.preview_frame)
         self.imagePreview.setObjectName(u"imagePreview")
         self.imagePreview.setGeometry(QRect(80, 10, 450, 450))
         # Remove font settings that might conflict
@@ -138,12 +169,7 @@ class Ui_MainWindow(object):
         QMetaObject.connectSlotsByName(MainWindow)
 
     def retranslateUi(self, MainWindow):
+        # Update retranslateUi with new labels
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Audio2VideoConverter", None))
-        self.imageBrowseButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
-        self.label.setText(QCoreApplication.translate("MainWindow", u"Choose Image", None))
-        self.imagePreview.setText(QCoreApplication.translate("MainWindow", u"Drop image here!", None))
-        self.audioBrowseButton.setText(QCoreApplication.translate("MainWindow", u"Browse", None))
-        self.label_3.setText(QCoreApplication.translate("MainWindow", u"Choose Audio file", None))
-        self.convertButton.setText(QCoreApplication.translate("MainWindow", u"Convert", None))
-        self.label_2.setText(QCoreApplication.translate("MainWindow", u"Designed by Abuabdellah", None))
-
+        self.title_label.setText(QCoreApplication.translate("MainWindow", u"Audio2Video Converter", None))
+        self.subtitle_label.setText(QCoreApplication.translate("MainWindow", u"Powered by DeepSeek℗", None))

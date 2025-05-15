@@ -12,13 +12,15 @@ from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QStyleFactory
+from PyQt6 import QtWidgets, QtGui
+
 
 class AudioToVideoConverter(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowIcon(QIcon("app_icon.ico"))  # or .png
+        self.setWindowIcon(QIcon("assets/icon.ico"))  # or .png
 
         def set_windows_dark_theme(self):
             """Full Windows 11 dark theme implementation"""
