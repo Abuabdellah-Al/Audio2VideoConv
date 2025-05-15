@@ -1,8 +1,7 @@
 import sys
 import os
-os.environ["IMAGEIO_FFMPEG_EXE"] = os.path.join(os.path.dirname(__file__), "ffmpeg")
 # Disable high contrast adaptation
-os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=2:nohighcontrast"
+os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=2"
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMessageBox)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
@@ -173,7 +172,7 @@ class AudioToVideoConverter(QMainWindow):
             msg.setIcon(QMessageBox.Critical)
         else:
             msg.setIcon(QMessageBox.Information)
-        msg.exec_()
+        msg.exec()
 
     def resizeEvent(self, event):
         if hasattr(self, 'current_image_path'):
@@ -241,7 +240,7 @@ class AudioToVideoConverter(QMainWindow):
                 raise Exception("Conversion completed but no file was created")
 
         except Exception as e:
-            self.show_message("Error", f"Conversion failed:\n{str(e)}", True)
+            self.show_message("Error", f"Conversion failed:\n{str(e)} \n{str(e.args)}", True)
 
         finally:
             self.ui.convertButton.setEnabled(True)
