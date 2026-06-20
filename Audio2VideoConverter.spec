@@ -19,6 +19,8 @@ a = Analysis(
         'moviepy.audio',
         'imageio',
         'imageio_ffmpeg',
+        'PIL',
+        'PIL.Image',
     ],
     hookspath=[],
     hooksconfig={},
@@ -63,7 +65,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=True,          # Remove debug symbols
     upx=True,            # Compress with UPX
-    upx_exclude=[],
+    upx_exclude=['ffmpeg.exe'],
     runtime_tmpdir=None,
     console=False,       # No console window
     disable_windowed_traceback=False,
@@ -82,6 +84,6 @@ coll = COLLECT(
     a.datas,
     strip=True,
     upx=True,
-    upx_exclude=[],
+    upx_exclude=['ffmpeg.exe'],
     name='Audio2VideoConverter',
 )

@@ -9,18 +9,62 @@ if sys.stderr is None:
 if sys.stdin is None:
     sys.stdin = open(os.devnull, "r")
 
+def resource_path(relative_path):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+def make_dims_even(clip):
+    w, h = clip.size
+    new_w = max(2, w - (w % 2))
+    new_h = max(2, h - (h % 2))
+    if (new_w, new_h) != (w, h):
+        clip = clip.cropped(x1=0, y1=0, width=new_w, height=new_h)
+    return clip
+
+# --- FFmpeg setup - MUST BE BEFORE ANY MOVIEPY IMPORT ---
+if hasattr(sys, '_MEIPASS'):
+    ffmpeg_exe = resource_path("ffmpeg/bin/ffmpeg.exe")
+else:
+    import imageio
+    ffmpeg_exe = imageio.plugins.ffmpeg.get_exe()
+    if not ffmpeg_exe or not os.path.exists(ffmpeg_exe):
+        imageio.plugins.ffmpeg.download()
+        ffmpeg_exe = imageio.plugins.ffmpeg.get_exe()
+
+if ffmpeg_exe and os.path.exists(ffmpeg_exe):
+    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+else:
+    os.environ["IMAGEIO_FFMPEG_EXE"] = "ffmpeg"
 # Disable high contrast adaptation
 os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=2"
+from PIL import Image
+import numpy as np
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMessageBox)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPixmap
 from PySide6.QtGui import QMouseEvent
 from moviepy import ImageClip, AudioFileClip
-from ui_main_window3 import Ui_MainWindow
+from ui_main_window import Ui_MainWindow
 from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QStyleFactory
+
+def load_image_as_rgb_array(path):
+    """Force any image (grayscale, RGBA, CMYK, palette, etc.) into a clean RGB array."""
+    img = Image.open(path)
+
+    # Handle transparency by compositing onto a white background
+    if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
+        img = img.convert('RGBA')
+        background = Image.new('RGB', img.size, (255, 255, 255))
+        background.paste(img, mask=img.split()[-1])  # alpha channel as mask
+        img = background
+    else:
+        img = img.convert('RGB')  # handles grayscale, CMYK, palette, etc.
+
+    return np.array(img)
 
 def resource_path(relative_path):
     """Get absolute path to resource, works for dev and for PyInstaller."""
@@ -195,24 +239,41 @@ class AudioToVideoConverter(QMainWindow):
         super().resizeEvent(event)
 
     def convert(self):
-        image_path = self.ui.imagePathLineEdit.text()
-        audio_path = self.ui.audioPathLineEdit.text()
-
-        if not all([image_path, audio_path]):
-            self.show_message("Error", "Please select both image and audio files!", True)
-            return
-
-        output_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Save Video",
-            "",
-            "MP4 Files (*.mp4);;AVI Files (*.avi)"
-        )
-
-        if not output_path:
-            return
-
+        # --- FFmpeg setup (must be inside try) ---
         try:
+            # Set FFmpeg path
+            if hasattr(sys, '_MEIPASS'):  # Running from packaged app
+                ffmpeg_exe = resource_path("ffmpeg/bin/ffmpeg.exe")
+                if os.path.exists(ffmpeg_exe):
+                    os.environ["IMAGEIO_FFMPEG_EXE"] = ffmpeg_exe
+                else:
+                    # Fallback to system ffmpeg
+                    os.environ["IMAGEIO_FFMPEG_EXE"] = "ffmpeg"
+            else:
+                # Development: use system or download
+                exe = imageio.plugins.ffmpeg.get_exe()
+                if not exe or not os.path.exists(exe):
+                    imageio.plugins.ffmpeg.download()
+                os.environ["IMAGEIO_FFMPEG_EXE"] = exe or "ffmpeg"
+
+            # --- Input validation ---
+            image_path = self.ui.imagePathLineEdit.text()
+            audio_path = self.ui.audioPathLineEdit.text()
+
+            if not all([image_path, audio_path]):
+                self.show_message("Error", "Please select both image and audio files!", True)
+                return
+
+            output_path, _ = QFileDialog.getSaveFileName(
+                self,
+                "Save Video",
+                "",
+                "MP4 Files (*.mp4);;AVI Files (*.avi)"
+            )
+
+            if not output_path:
+                return
+
             # Ensure .mp4 extension
             if not output_path.lower().endswith('.mp4'):
                 output_path += '.mp4'
@@ -228,25 +289,25 @@ class AudioToVideoConverter(QMainWindow):
             self.ui.convertButton.setText("Converting...")
             QApplication.processEvents()
 
-            # Load clips (CORRECTED VERSION)
+            # Load and combine clips
             audio_clip = AudioFileClip(audio_path)
-            image_clip = ImageClip(image_path)
 
-            # Set image duration to match audio
+            img_array = load_image_as_rgb_array(image_path)
+
+            image_clip = ImageClip(img_array)
+            image_clip = make_dims_even(image_clip)
             image_clip = image_clip.with_duration(audio_clip.duration)
-
-            # Combine clips (CORRECTED METHOD)
             video_clip = image_clip.with_audio(audio_clip)
 
-            # Write video file
+            # Write video
             video_clip.write_videofile(
                 output_path,
                 fps=24,
                 codec='libx264',
                 audio_codec='aac',
                 threads=4,
-                ffmpeg_params=['-crf', '18'],
-                logger=None
+                ffmpeg_params=['-crf', '18', '-pix_fmt', 'yuv420p'],
+                logger = None
             )
 
             # Verify output
