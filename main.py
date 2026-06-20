@@ -1,5 +1,14 @@
 import sys
 import os
+
+# --- Must be first: PyInstaller windowed apps have stdout/stderr/stdin = None ---
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, "w")
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, "w")
+if sys.stdin is None:
+    sys.stdin = open(os.devnull, "r")
+
 # Disable high contrast adaptation
 os.environ["QT_QPA_PLATFORM"] = "windows:darkmode=2"
 from PySide6.QtWidgets import (QApplication, QMainWindow, QFileDialog, QMessageBox)
@@ -12,15 +21,19 @@ from PySide6.QtCore import QStandardPaths
 from PySide6.QtGui import QIcon
 from PySide6.QtGui import QPalette, QColor
 from PySide6.QtWidgets import QStyleFactory
-from PyQt6 import QtWidgets, QtGui
 
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
 
 class AudioToVideoConverter(QMainWindow):
     def __init__(self):
         super().__init__()
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowIcon(QIcon("assets/icon.ico"))  # or .png
+        self.setWindowIcon(QIcon(resource_path("assets/icon3.ico")))  # or .png
 
         def set_windows_dark_theme(self):
             """Full Windows 11 dark theme implementation"""
@@ -232,7 +245,8 @@ class AudioToVideoConverter(QMainWindow):
                 codec='libx264',
                 audio_codec='aac',
                 threads=4,
-                ffmpeg_params=['-crf', '18']  # Better quality
+                ffmpeg_params=['-crf', '18'],
+                logger=None
             )
 
             # Verify output
